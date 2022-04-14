@@ -54,7 +54,7 @@ class Recorder implements Runnable
         int l1 = INT_MAX, l2 = INT_MAX, l3 = INT_MAX, l4 = INT_MAX, l5 = INT_MAX;
         if(command)
         {
-          // algorithm from GitHub link in ReadMe to find five highest and lowest values without sorting
+          // algorithm from Stack Overflow link in ReadMe to find five highest and lowest values without sorting
           for(int i = 0; i < 8; i++)
           {
             for(int j = 0; j < 60; j++)
