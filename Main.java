@@ -1,50 +1,136 @@
 
-// create an array 8x60 that stores the temps that each thread records
-// when any thread writes a value, they potentially store it in a separate area where they store the five highest and lowest values
-// use new github link to find five highest and lowest values
-// there needs to be a command algorithm to sweep the array and grab the needed values for the output
-// a ninth thread is out of the question, but an existing thread could handle this as the "command thread"
-// this runs the small risk of writes occuring during reading but this can be solved with a small delay before caluculation after the final minute mark
-//
-
 import java.util.concurrent.atomic.AtomicInteger;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.*;
 
 class Recorder implements Runnable
 {
-  private boolean[][] temperatureHistory;
+  public static final int INT_MIN = Integer.MIN_VALUE;
+  public static final int INT_MAX = Integer.MAX_VALUE;
+  
+  private int[][] tempHis;
+  private int[] tempDiff;
   boolean command;
   int column;
+  public static volatile boolean flag;
   
   // contructor
-  public Recorder(int[][] temperatureHistory, boolean command, int column)
+  public Recorder(int[][] tempHis, int[] tempDiff, boolean command, int column, boolean flag)
   {
-    this.temperatureHistory = temperatureHistory;
+    this.tempHis = tempHis;
+    this.tempDiff = tempDiff;
     this.command = command;
     this.column = column;
+    this.flag = flag;
   }
   
   public void run()
   {
     try
     {
-      // wait one minute
-      // generate random number
-      // add random number to slot in array at column value
-      // increment counter
-      // at 60, if command, calculate needed values after a second or two
-      // use github algorithm to grab biggest values
-      // use inchworm method to find biggest ten minute interval and ship to another array
-      // the value shipped can be a counter that starts an INT_MIN and get overwritten whenever a bigger value is found
-      
+      // this program will run infinitely because the description gave no instructions to conclude it
+      while(true)
+      {
+        // one thread is designated "command" and it will lead the others in their action and perform some special calculations
+        // command thread will set a flag to true so that calculating can begin for all threads at once
+        if(command)
+          flag = true;
+        
+        // non command threads will get here and busy wait until command gets to the above line
+        while(!flag){}
+        
+        for(int i = 0; i < 60; i++)
+        {
+          // wait a minute before collecting a value
+          Thread.sleep(60000);
+          // generate the random temperature
+          // this is the linearization point of the threads
+          tempHis[column][i] = ThreadLocalRandom.current().nextInt(-100, 71);
+        }
+        
+        // one thread is designated "command" and it does the caluculation of the five largest and smallest values
+        int h1 = INT_MIN, h2 = INT_MIN, h3 = INT_MIN, h4 = INT_MIN, h5 = INT_MIN;
+        int l1 = INT_MAX, l2 = INT_MAX, l3 = INT_MAX, l4 = INT_MAX, l5 = INT_MAX;
+        if(command)
+        {
+          // algorithm from GitHub link in ReadMe to find five highest and lowest values without sorting
+          for(int i = 0; i < 8; i++)
+          {
+            for(int j = 0; j < 60; j++)
+            {
+              // five highest values
+              if(tempHis[i][j] > h1) {
+                h5 = h4; h4 = h3; h3 = h2; h2 = h1; h1 = tempHis[i][j];
+              }
+              else if(tempHis[i][j] > h2) {
+                h5 = h4; h4 = h3; h3 = h2; h2 = tempHis[i][j];
+              }
+              else if(tempHis[i][j] > h3) {
+                h5 = h4; h4 = h3; h3 = tempHis[i][j];
+              }
+              else if(tempHis[i][j] > h4) {
+                h5 = h4; h4 = tempHis[i][j];
+              }
+              else if(tempHis[i][j] > h5) {
+                h5 = tempHis[i][j];
+              }
+              
+              // five lowest values
+              if(tempHis[i][j] < l1) {
+                l5 = l4; l4 = l3; l3 = l2; l2 = l1; l1 = tempHis[i][j];
+              }
+              else if(tempHis[i][j] < l2) {
+                l5 = l4; l4 = l3; l3 = l2; l2 = tempHis[i][j];
+              }
+              else if(tempHis[i][j] < l3) {
+                l5 = l4; l4 = l3; l3 = tempHis[i][j];
+              }
+              else if(tempHis[i][j] < l4) {
+                l5 = l4; l4 = tempHis[i][j];
+              }
+              else if(tempHis[i][j] < l5) {
+                l5 = tempHis[i][j];
+              }
+            }
+          }
+        }
+        
+        // find largest temperature difference recorded by this thread and send it to array
+        // my assumption from reading the description of the problem is that I am to take two values ten minutes apart
+        // and compare their absolute difference, while ignoring the values in between these "bookend" values
+        // and then simply select the largest difference
+        int finalDiff = INT_MIN;
+        for(int i = 10; i < 60; i++)
+        {
+          int diff = Math.abs(tempHis[column][i] - tempHis[column][i-10]);
+          if(diff > finalDiff)
+            finalDiff = diff;
+        }
+        // plug the result into the secondary array
+        tempDiff[column] = finalDiff;
+        
+        // command thread will now select the highest value in this secondary array
+        int highestDiff = INT_MIN;
+        if(command)
+        {
+          for(int i = 0; i < 8; i++)
+          {
+            if(tempDiff[i] > highestDiff)
+              highestDiff = tempDiff[i];
+          }
+        }
+      }
     }
     catch (Exception e)
     {
       System.out.println("Exception has occured" + e);
     }
     
+    // as stated previously, the description gave no instructions for ending the program,
+    // and so it will never reach this return line
+    // additionally, there was also no instructions given for outputting the values collected,
+    // and so they are not
     return;
   }
 }
@@ -53,18 +139,26 @@ class Recorder implements Runnable
 // main class
 class Main
 {
+  public static final int INT_MIN = Integer.MIN_VALUE;
+  public static final int INT_MAX = Integer.MAX_VALUE;
+  
   public static void main(String args[])
   {
     int[][] temperatureHistory = new int[8][60];
+    int[] tempDiff = new int[8];
 
-    Thread recorder1 = new Thread(new Recorder(temperatureHistory, true, 1));
-    Thread recorder2 = new Thread(new Recorder(temperatureHistory, false, 2));
-    Thread recorder3 = new Thread(new Recorder(temperatureHistory, false, 3));
-    Thread recorder4 = new Thread(new Recorder(temperatureHistory, false, 4));
-    Thread recorder5 = new Thread(new Recorder(temperatureHistory, false, 5));
-    Thread recorder6 = new Thread(new Recorder(temperatureHistory, false, 6));
-    Thread recorder7 = new Thread(new Recorder(temperatureHistory, false, 7));
-    Thread recorder8 = new Thread(new Recorder(temperatureHistory, false, 8));
+    // I tried putting these in a loop but I got a weird error for doing it and
+    // couldn't quite figure out what was wrong
+    // it might have to do with how I create my thread objects, 
+    // but if that's the problem then I have no idea how to avoid it 
+    Thread recorder1 = new Thread(new Recorder(temperatureHistory, tempDiff, false, 0, false));
+    Thread recorder7 = new Thread(new Recorder(temperatureHistory, tempDiff, false, 1, false));
+    Thread recorder2 = new Thread(new Recorder(temperatureHistory, tempDiff, false, 2, false));
+    Thread recorder3 = new Thread(new Recorder(temperatureHistory, tempDiff, false, 3, false));
+    Thread recorder4 = new Thread(new Recorder(temperatureHistory, tempDiff, false, 4, false));
+    Thread recorder5 = new Thread(new Recorder(temperatureHistory, tempDiff, false, 5, false));
+    Thread recorder6 = new Thread(new Recorder(temperatureHistory, tempDiff, false, 6, false));
+    Thread recorder8 = new Thread(new Recorder(temperatureHistory, tempDiff, true, 7, false));
     
     try
     {
