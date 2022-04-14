@@ -1,5 +1,7 @@
 
 # COP4520-Assignment-3B
+To run use "javac Main.java" followed by "java Main"
+
 This program uses a 2d array to store random temperature values, which are then read and collected by a single thread denoted as the "command" thread.
 An array was used because an array has no issues regarding concurrent reading, and issues regarding concurrent writing only occur if 
 multiple threads are writing on the same element, which this program avoids entirely.
