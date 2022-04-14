@@ -26,4 +26,4 @@ That said, I certainly was thorough in trying to avoid bugs in the code when I w
 and the nature of gathering values for an hour before outputting anything, I interpreted this assignment as more of a "proof of concept" rather than a 100% functional model.
 I am banking quite a bit on this interpretation of mine, but it's a risk I am confident in taking.
 
-GitHub link referenced at line 57: https://stackoverflow.com/questions/32816006/3-highest-numbers-in-an-array-without-sorting-where-am-i-missing-the-logic
+Stackoverflow link referenced at line 57: https://stackoverflow.com/questions/32816006/3-highest-numbers-in-an-array-without-sorting-where-am-i-missing-the-logic
